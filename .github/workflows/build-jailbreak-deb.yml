@@ -1,0 +1,61 @@
+name: Build CocoaAsyncSocket Universal Static Lib
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Build iOS Device Library
+        run: |
+          xcodebuild -project CocoaAsyncSocket.xcodeproj \
+            -target CocoaAsyncSocket \
+            -configuration Release \
+            -sdk iphoneos \
+            ARCHS="arm64" \
+            ONLY_ACTIVE_ARCH=NO \
+            BUILD_DIR=build \
+            clean build
+
+      - name: Build iOS Simulator Library
+        run: |
+          xcodebuild -project CocoaAsyncSocket.xcodeproj \
+            -target CocoaAsyncSocket \
+            -configuration Release \
+            -sdk iphonesimulator \
+            ARCHS="x86_64 arm64" \
+            ONLY_ACTIVE_ARCH=NO \
+            BUILD_DIR=build \
+            clean build
+
+      - name: Create Universal Static Library
+        run: |
+          mkdir -p build/Universal
+          lipo -create \
+            build/Release-iphoneos/libCocoaAsyncSocket.a \
+            build/Release-iphonesimulator/libCocoaAsyncSocket.a \
+            -output build/Universal/libCocoaAsyncSocket.a
+          cp Source/*.h build/Universal/
+          lipo -info build/Universal/libCocoaAsyncSocket.a
+
+      - name: Package Artifact
+        run: |
+          cd build/Universal
+          zip -r ../CocoaAsyncSocket-Universal.zip ./*
+
+      - name: Upload Universal Lib
+        uses: actions/upload-artifact@v4
+        with:
+          name: CocoaAsyncSocket-Universal-Lib
+          path: build/CocoaAsyncSocket-Universal.zip
