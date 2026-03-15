@@ -1,0 +1,37 @@
+name: Build iOS Tweak
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Theos
+        run: |
+          sudo git clone --recursive https://github.com/theos/theos.git /opt/theos
+          sudo chown -R $(whoami) /opt/theos
+          echo "THEOS=/opt/theos" >> $GITHUB_ENV
+          echo "/opt/theos/bin" >> $GITHUB_PATH
+
+      - name: 安装依赖
+        run: |
+          brew install dpkg ldid
+
+      - name: 编译打包
+        run: |
+          make clean
+          make package
+
+      - name: 上传 deb 包
+        uses: actions/upload-artifact@v4
+        with:
+          name: huangkun-tweak-deb
+          path: "packages/*.deb"
+          if-no-files-found: error
