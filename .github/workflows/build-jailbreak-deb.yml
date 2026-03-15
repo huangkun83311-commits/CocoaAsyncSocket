@@ -18,19 +18,19 @@ jobs:
           xcodebuild -version
           brew install dpkg
 
-      # ✅ 用绝对路径编译源码，解决找不到文件问题
+      # ✅ 修正路径：加上 GCD/ 目录
       - name: Build arm64 Static Library (manual compile)
         run: |
           SDK_IPHONEOS=$(xcrun --sdk iphoneos --show-sdk-path)
           mkdir -p build/Release-iphoneos
-          # 核心修改：使用 $GITHUB_WORKSPACE 指向仓库根目录
+          # 修正：加上 GCD/ 目录
           xcrun clang -arch arm64 -isysroot $SDK_IPHONEOS \
             -fobjc-arc \
-            -c $GITHUB_WORKSPACE/Source/GCDAsyncSocket.m $GITHUB_WORKSPACE/Source/GCDAsyncUdpSocket.m \
+            -c $GITHUB_WORKSPACE/Source/GCD/GCDAsyncSocket.m $GITHUB_WORKSPACE/Source/GCD/GCDAsyncUdpSocket.m \
             -o build/Release-iphoneos/CocoaAsyncSocket.o
           xcrun ar rcs build/Release-iphoneos/libCocoaAsyncSocket.a build/Release-iphoneos/CocoaAsyncSocket.o
 
-      # ✅ 用绝对路径复制头文件
+      # ✅ 修正路径：加上 GCD/ 目录
       - name: Setup Deb Package Structure
         run: |
           DEB_ROOT=build/CocoaAsyncSocket-deb
@@ -38,9 +38,9 @@ jobs:
           mkdir -p $DEB_ROOT/Library/Frameworks
           # 复制静态库
           cp build/Release-iphoneos/libCocoaAsyncSocket.a $DEB_ROOT/Library/Frameworks/
-          # 复制头文件（绝对路径）
-          cp $GITHUB_WORKSPACE/Source/GCDAsyncSocket.h $DEB_ROOT/Library/Frameworks/
-          cp $GITHUB_WORKSPACE/Source/GCDAsyncUdpSocket.h $DEB_ROOT/Library/Frameworks/
+          # 修正：头文件在 Source/GCD/ 目录下
+          cp $GITHUB_WORKSPACE/Source/GCD/GCDAsyncSocket.h $DEB_ROOT/Library/Frameworks/
+          cp $GITHUB_WORKSPACE/Source/GCD/GCDAsyncUdpSocket.h $DEB_ROOT/Library/Frameworks/
           # deb 控制文件
           cat > $DEB_ROOT/DEBIAN/control << EOF
           Package: com.cocoasyncsocket.jailbreak
