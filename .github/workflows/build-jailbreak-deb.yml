@@ -1,4 +1,4 @@
-name: Build CocoaAsyncSocket Universal Static Lib
+name: Build CocoaAsyncSocket Jailbreak Deb
 
 on:
   push:
@@ -6,19 +6,21 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-deb:
     runs-on: macos-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 修复Xcode路径：去掉_15，使用默认Xcode路径
-      - name: Select Xcode
+      # 修复Xcode路径 + 安装deb打包工具dpkg
+      - name: Prepare Environment
         run: |
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
+          brew install dpkg # 安装deb打包工具
 
-      - name: Build iOS Device Library
+      # 编译越狱设备用的静态库（仅arm64）
+      - name: Build iOS Static Lib (arm64)
         run: |
           xcodebuild -project CocoaAsyncSocket.xcodeproj \
             -target CocoaAsyncSocket \
@@ -29,34 +31,44 @@ jobs:
             BUILD_DIR=build \
             clean build
 
-      - name: Build iOS Simulator Library
+      # 搭建deb包目录结构（符合iOS越狱规范）
+      - name: Prepare Deb Structure
         run: |
-          xcodebuild -project CocoaAsyncSocket.xcodeproj \
-            -target CocoaAsyncSocket \
-            -configuration Release \
-            -sdk iphonesimulator \
-            ARCHS="x86_64 arm64" \
-            ONLY_ACTIVE_ARCH=NO \
-            BUILD_DIR=build \
-            clean build
+          DEB_ROOT=build/CocoaAsyncSocket-deb
+          mkdir -p $DEB_ROOT/DEBIAN
+          mkdir -p $DEB_ROOT/Library/Frameworks
 
-      - name: Create Universal Static Library
+          # 复制静态库和头文件
+          cp build/Release-iphoneos/libCocoaAsyncSocket.a $DEB_ROOT/Library/Frameworks/
+          cp Source/*.h $DEB_ROOT/Library/Frameworks/
+
+          # 编写deb控制文件（必须）
+          cat > $DEB_ROOT/DEBIAN/control << EOF
+          Package: com.cocoasyncsocket.jailbreak
+          Name: CocoaAsyncSocket
+          Version: 7.6.5
+          Architecture: iphoneos-arm
+          Depends: mobilesubstrate (>= 0.9.5900)
+          Maintainer: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          Description: CocoaAsyncSocket for iOS Jailbreak (arm64)
+          Section: Tweaks
+          Author: robbiehanson
+          Homepage: https://github.com/robbiehanson/CocoaAsyncSocket
+          EOF
+
+          # 设置权限（deb包要求）
+          chmod 0755 $DEB_ROOT/DEBIAN
+          chmod 0644 $DEB_ROOT/DEBIAN/control
+
+      # 打包成deb文件
+      - name: Build Deb Package
         run: |
-          mkdir -p build/Universal
-          lipo -create \
-            build/Release-iphoneos/libCocoaAsyncSocket.a \
-            build/Release-iphonesimulator/libCocoaAsyncSocket.a \
-            -output build/Universal/libCocoaAsyncSocket.a
-          cp Source/*.h build/Universal/
-          lipo -info build/Universal/libCocoaAsyncSocket.a
+          dpkg-deb --build build/CocoaAsyncSocket-deb/ build/CocoaAsyncSocket-jailbreak_7.6.5_arm64.deb
+          dpkg-deb -I build/CocoaAsyncSocket-jailbreak_7.6.5_arm64.deb # 验证deb包
 
-      - name: Package Artifact
-        run: |
-          cd build/Universal
-          zip -r ../CocoaAsyncSocket-Universal.zip ./*
-
-      - name: Upload Universal Lib
+      # 上传deb包供下载
+      - name: Upload Jailbreak Deb
         uses: actions/upload-artifact@v4
         with:
-          name: CocoaAsyncSocket-Universal-Lib
-          path: build/CocoaAsyncSocket-Universal.zip
+          name: CocoaAsyncSocket-Jailbreak-Deb
+          path: build/CocoaAsyncSocket-jailbreak_7.6.5_arm64.deb
