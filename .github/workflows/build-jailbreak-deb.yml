@@ -12,9 +12,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 修复Xcode路径：去掉_15，使用默认Xcode路径
       - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode_15.app/Contents/Developer
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
           xcodebuild -version
 
       - name: Build iOS Device Library
