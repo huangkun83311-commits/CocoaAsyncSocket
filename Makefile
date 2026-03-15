@@ -1,3 +1,6 @@
+# 添加这一行来明确指定编译目标
+export TARGET = iphone:latest:12.0
+
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = huangkuntweak
