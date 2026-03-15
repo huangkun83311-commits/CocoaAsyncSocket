@@ -18,17 +18,17 @@ jobs:
           xcodebuild -version
           brew install dpkg
 
-      # ✅ 修正路径：加上 GCD/ 目录
+      # ✅ 修正：分开编译多个文件
       - name: Build arm64 Static Library (manual compile)
         run: |
           SDK_IPHONEOS=$(xcrun --sdk iphoneos --show-sdk-path)
           mkdir -p build/Release-iphoneos
-          # 修正：加上 GCD/ 目录
-          xcrun clang -arch arm64 -isysroot $SDK_IPHONEOS \
-            -fobjc-arc \
-            -c $GITHUB_WORKSPACE/Source/GCD/GCDAsyncSocket.m $GITHUB_WORKSPACE/Source/GCD/GCDAsyncUdpSocket.m \
-            -o build/Release-iphoneos/CocoaAsyncSocket.o
-          xcrun ar rcs build/Release-iphoneos/libCocoaAsyncSocket.a build/Release-iphoneos/CocoaAsyncSocket.o
+          # 编译第一个文件
+          xcrun clang -arch arm64 -isysroot $SDK_IPHONEOS -fobjc-arc -c $GITHUB_WORKSPACE/Source/GCD/GCDAsyncSocket.m -o build/Release-iphoneos/GCDAsyncSocket.o
+          # 编译第二个文件
+          xcrun clang -arch arm64 -isysroot $SDK_IPHONEOS -fobjc-arc -c $GITHUB_WORKSPACE/Source/GCD/GCDAsyncUdpSocket.m -o build/Release-iphoneos/GCDAsyncUdpSocket.o
+          # 合并成静态库
+          xcrun ar rcs build/Release-iphoneos/libCocoaAsyncSocket.a build/Release-iphoneos/GCDAsyncSocket.o build/Release-iphoneos/GCDAsyncUdpSocket.o
 
       # ✅ 修正路径：加上 GCD/ 目录
       - name: Setup Deb Package Structure
