@@ -1,0 +1,9 @@
+Package: com.huangkun.tweak
+Name: Huangkun Tweak
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: 局域网通信插件
+Depends: mobilesubstrate
+Maintainer: huangkun
+Author: huangkun
+Section: Tweaks
